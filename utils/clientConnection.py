@@ -1,0 +1,45 @@
+from agent_framework.foundry import FoundryChatClient #type: ignore
+from azure.identity import AzureCliCredential, ManagedIdentityCredential, DefaultAzureCredential #type: ignore
+from azure.core.credentials import TokenRequestOptions #type:ignore
+from typing import Annotated
+from pydantic import Field
+import os
+
+# credential = AzureCliCredential()
+# client = FoundryChatClient(
+#     project_endpoint="https://devops-maf1.cognitiveservices.azure.com/api/projects/proj-default",
+#     model="gpt-4.1-nano",
+#     credential=credential,
+# )
+
+# from agent_framework.foundry import FoundryChatClient
+# from azure.identity import AzureCliCredential
+
+_client = None
+_credential = None
+
+# def _get_credential():
+#     global _credential
+#     if _credential is None:
+#         _credential = DefaultAzureCredential()
+#         # warm up — force token fetch immediately
+#         _credential.get_token("https://cognitiveservices.azure.com/.default")
+#     return _credential
+def get_credential():
+    print("Getting credential... : ", os.getenv("Container_apps"))
+    if os.getenv("WEBSITE_INSTANCE_ID") and os.getenv("USE_MANAGED_IDENTITY", "true").lower() == "true":
+        return ManagedIdentityCredential()
+
+    # return AzureCliCredential(process_timeout=30)
+    return DefaultAzureCredential(exclude_cli_credential=True)
+
+def get_client(model:Annotated[str, Field(description="AI foundry model used.")],endpoint:Annotated[str, Field(description="AI foundry endpoint URL.")]):
+    global _client
+    if _client is None:
+        # credential = DefaultAzureCredential()
+        _client = FoundryChatClient(
+            project_endpoint=endpoint,
+            model=model,
+            credential= get_credential(),
+        )
+    return _client
